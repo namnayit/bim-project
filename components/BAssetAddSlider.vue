@@ -9,21 +9,74 @@ const route = useRoute();
 const { addAsset, isAddSlideOverOpen, updateAssetImageUrl, toggleAddSlideOver, fetchAssets, addOrUpdateAssetImage } = useAsset();
 
 const name = ref("");
-const quantity = ref(1); // Set minimum quantity to 1 initially
+const quantity = ref(1);
 const imageUrl = ref("");
 const type = ref("material");
-const siteId = route.params.id; // Fetch site_id from route
+const siteId = route.params.id;
 
 const uploading = ref(false);
-const tempFile = ref(null); // Temporary file for image upload
+const tempFile = ref(null);
+
+const suggestions = ref([]);
+const showSuggestions = ref(false);
+const searchTimeout = ref(null);
 
 watch(isAddSlideOverOpen, (isOpen) => {
     if (isOpen) {
         setTimeout(() => {
-            document.activeElement?.blur(); // Remove focus from any inputs
+            document.activeElement?.blur();
         }, 100);
+    } else {
+        name.value = "";
+        quantity.value = 1;
+        imageUrl.value = "";
+        tempFile.value = null;
+        suggestions.value = [];
+        showSuggestions.value = false;
     }
 });
+
+const searchAssetNames = async () => {
+    const query = name.value.trim();
+
+    if (query.length < 2) {
+        suggestions.value = [];
+        showSuggestions.value = false;
+        return;
+    }
+
+    try {
+        const response = await $fetch(`/api/assets/search?q=${encodeURIComponent(query)}`);
+        suggestions.value = response.assets || [];
+        showSuggestions.value = suggestions.value.length > 0;
+    } catch (error) {
+        console.error("Error fetching asset suggestions:", error);
+        suggestions.value = [];
+        showSuggestions.value = false;
+    }
+};
+
+const handleNameInput = () => {
+    if (searchTimeout.value) {
+        clearTimeout(searchTimeout.value);
+    }
+
+    searchTimeout.value = setTimeout(() => {
+        searchAssetNames();
+    }, 300);
+};
+
+const selectSuggestion = (suggestion) => {
+    name.value = suggestion;
+    suggestions.value = [];
+    showSuggestions.value = false;
+};
+
+const closeSuggestions = () => {
+    setTimeout(() => {
+        showSuggestions.value = false;
+    }, 200);
+};
 
 const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -94,14 +147,35 @@ const saveAsset = async () => {
             </template>
 
             <div class="space-y-4">
-                <!-- Asset Name -->
-                <div>
+                <!-- Asset Name with Autocomplete -->
+                <div class="relative">
                     <label class="block text-lg font-medium text-zinc-700 dark:text-zinc-200">Name</label>
                     <input
                         v-model="name"
+                        @input="handleNameInput"
+                        @focus="name.length >= 2 && searchAssetNames()"
+                        @blur="closeSuggestions"
                         type="text"
+                        placeholder="Type to search existing assets..."
                         class="mt-1 bg-zinc-100 border border-zinc-300 text-zinc-900 text-lg rounded-lg focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none block w-full p-3 dark:bg-zinc-800 dark:border-zinc-600 dark:placeholder-zinc-400 dark:text-white"
                     />
+
+                    <!-- Autocomplete Dropdown -->
+                    <div
+                        v-if="showSuggestions && suggestions.length > 0"
+                        class="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                    >
+                        <ul>
+                            <li
+                                v-for="(suggestion, index) in suggestions"
+                                :key="index"
+                                @mousedown="selectSuggestion(suggestion)"
+                                class="px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer text-zinc-900 dark:text-white capitalize"
+                            >
+                                {{ suggestion }}
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
                 <!-- Quantity with increment and decrement buttons -->
