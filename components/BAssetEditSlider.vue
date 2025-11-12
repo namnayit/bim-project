@@ -3,8 +3,8 @@ import { useNuxtApp } from "#app";
 import { useAsset } from "@/composables/useAsset";
 import Compressor from "compressorjs";
 import { ref, watch } from "vue";
-const route = useRoute();
 
+const route = useRoute();
 const nuxtApp = useNuxtApp();
 const {
   editAsset,
@@ -19,6 +19,7 @@ const {
 const name = ref(selectedAsset.value?.name || "");
 const quantity = ref(selectedAsset.value?.quantity || 1);
 const imageUrl = ref(selectedAsset.value?.image_url || "");
+const category = ref(selectedAsset.value?.category || "materials");
 const uploading = ref(false);
 const siteId = route.params.id;
 
@@ -27,14 +28,14 @@ watch(selectedAsset, (newAsset) => {
     name.value = newAsset.name;
     quantity.value = newAsset.quantity;
     imageUrl.value = newAsset.image_url || "";
+    category.value = newAsset.category || "materials";
   }
 });
 
-// Watch the slider's open state and prevent focus on inputs when opened
 watch(isEditSlideOverOpen, (isOpen) => {
   if (isOpen) {
     setTimeout(() => {
-      document.activeElement?.blur(); // Remove focus from any inputs
+      document.activeElement?.blur();
     }, 100);
   }
 });
@@ -91,6 +92,7 @@ const saveChanges = async () => {
     id: selectedAsset.value.id,
     name: name.value,
     quantity: quantity.value,
+    category: category.value,
     image_url: imageUrl.value,
   };
   const success = await editAsset(updatedAsset);
@@ -119,7 +121,6 @@ const saveChanges = async () => {
       </template>
 
       <div class="space-y-4">
-        <!-- Asset Name -->
         <div>
           <label
             class="block text-lg font-medium text-zinc-700 dark:text-zinc-200"
@@ -132,7 +133,37 @@ const saveChanges = async () => {
           />
         </div>
 
-        <!-- Quantity with increment and decrement buttons -->
+        <div>
+          <label
+            class="block text-lg font-medium text-zinc-700 dark:text-zinc-200 mb-2"
+            >Category</label
+          >
+          <div class="flex gap-3">
+            <button
+              @click.stop="category = 'equipment'"
+              :class="[
+                'flex-1 py-2 px-4 rounded-lg font-semibold transition',
+                category === 'equipment'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-200 hover:bg-zinc-300 dark:hover:bg-zinc-600',
+              ]"
+            >
+              Equipment
+            </button>
+            <button
+              @click.stop="category = 'materials'"
+              :class="[
+                'flex-1 py-2 px-4 rounded-lg font-semibold transition',
+                category === 'materials'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-200 hover:bg-zinc-300 dark:hover:bg-zinc-600',
+              ]"
+            >
+              Materials
+            </button>
+          </div>
+        </div>
+
         <div>
           <label
             class="block text-lg font-medium text-zinc-700 dark:text-zinc-200"
@@ -164,7 +195,6 @@ const saveChanges = async () => {
           </div>
         </div>
 
-        <!-- Image Upload Section -->
         <div class="space-y-2">
           <label
             class="block text-lg font-medium text-zinc-700 dark:text-zinc-200"

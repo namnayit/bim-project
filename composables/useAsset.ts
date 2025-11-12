@@ -20,7 +20,8 @@ export function useAsset() {
       .from("assets")
       .select("*")
       .eq("site_id", siteId)
-      .order("name", { ascending: true }); // Orders assets alphabetically by name
+      .order("category", { ascending: true })
+      .order("name", { ascending: true }); // Orders assets alphabetically by name and category
 
     if (error) {
       errorMessage.value = `Error fetching assets: ${error.message}`;
@@ -68,12 +69,14 @@ export function useAsset() {
       .select("id")
       .eq("name", newAsset.name)
       .eq("site_id", newAsset.site_id)
+      .eq("category", newAsset.category) // Added category to uniqueness check
       .maybeSingle();
 
     if (existing) {
       return {
         success: false,
-        error: "An asset with this name already exists for the site",
+        error:
+          "An asset with this name already exists for the site in this category",
       };
     } else {
       const { data, error } = await supabase
@@ -95,15 +98,20 @@ export function useAsset() {
 
   // Edit asset properties, including image URL update
   const editAsset = async (updatedAsset) => {
+    const { id, site_id, name, quantity, type, image_url, category } =
+      updatedAsset;
+    const payload = { name, quantity, type, image_url, category };
+
     const { error } = await supabase
       .from("assets")
-      .update(updatedAsset)
-      .eq("id", updatedAsset.id);
+      .update(payload)
+      .eq("id", id);
     if (error) {
       errorMessage.value = `Error updating asset: ${error.message}`;
+      console.log("[v0] Update error details:", error);
       return false;
     }
-    await fetchAssets(updatedAsset.site_id);
+    await fetchAssets(site_id);
     return true;
   };
 
@@ -152,7 +160,6 @@ export function useAsset() {
     });
   };
 
-  // Add or update asset image URL
   // Add or update asset image URL
   const addOrUpdateAssetImage = async (assetId, file) => {
     try {
@@ -230,6 +237,7 @@ export function useAsset() {
         name,
         type,
         image_url,
+        category,
       } = selectedAsset.value;
 
       const totalQty = transfers.reduce((sum, t) => sum + t.quantity, 0);
@@ -252,6 +260,7 @@ export function useAsset() {
             .select("*")
             .eq("site_id", targetSiteId)
             .eq("name", name)
+            .eq("category", category)
             .maybeSingle();
 
           if (error && error.code !== "PGRST116") throw error;
@@ -270,6 +279,7 @@ export function useAsset() {
               quantity,
               type,
               image_url,
+              category,
             });
             if (insError) throw insError;
           }
@@ -278,7 +288,7 @@ export function useAsset() {
 
       await Promise.all(transferPromises);
 
-      // 3. If source asset quantity becomes 0, move to `is_main = true` site
+      // If source asset quantity becomes 0, move to `is_main = true` site
       if (remaining === 0) {
         const { data: mainSite, error: mainError } = await supabase
           .from("sites")
@@ -295,6 +305,7 @@ export function useAsset() {
             .select("*")
             .eq("site_id", mainSite.id)
             .eq("name", name)
+            .eq("category", category)
             .maybeSingle();
 
         if (
@@ -319,6 +330,7 @@ export function useAsset() {
               quantity: 0,
               type,
               image_url,
+              category,
             });
           if (insertMainAsset) throw insertMainAsset;
         }
@@ -381,7 +393,6 @@ export function useAsset() {
     addAsset,
     updateAssetImageUrl,
     editAsset,
-    // transferAsset,
     transferAssetToMultipleSites,
     uploadImage,
     addOrUpdateAssetImage,

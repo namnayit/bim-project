@@ -4,8 +4,9 @@ import { useAsset } from "@/composables/useAsset";
 import Compressor from "compressorjs";
 import { ref } from "vue";
 
-const nuxtApp = useNuxtApp();
 const route = useRoute();
+const nuxtApp = useNuxtApp();
+
 const {
   addAsset,
   isAddSlideOverOpen,
@@ -19,6 +20,8 @@ const name = ref("");
 const quantity = ref(1);
 const imageUrl = ref("");
 const type = ref("material");
+const category = ref("materials");
+
 const siteId = route.params.id;
 
 const uploading = ref(false);
@@ -37,6 +40,7 @@ watch(isAddSlideOverOpen, (isOpen) => {
     name.value = "";
     quantity.value = 1;
     imageUrl.value = "";
+    category.value = "materials";
     tempFile.value = null;
     suggestions.value = [];
     showSuggestions.value = false;
@@ -122,12 +126,18 @@ const decrementQuantity = () => {
   if (quantity.value > 1) quantity.value -= 1;
 };
 
+// Category selector buttons
+const selectCategory = (newCategory) => {
+  category.value = newCategory;
+};
+
 // Save asset and then upload image if it exists
 const saveAsset = async () => {
   const newAsset = {
     name: name.value,
     quantity: quantity.value,
     type: type.value,
+    category: category.value,
     site_id: siteId,
   };
 
@@ -194,6 +204,38 @@ const saveAsset = async () => {
                 {{ suggestion }}
               </li>
             </ul>
+          </div>
+        </div>
+
+        <!-- Category selector buttons -->
+        <div>
+          <label
+            class="block text-lg font-medium text-zinc-700 dark:text-zinc-200 mb-2"
+            >Category</label
+          >
+          <div class="flex gap-3">
+            <button
+              @click.stop="selectCategory('equipment')"
+              :class="[
+                'flex-1 py-2 px-4 rounded-lg font-semibold transition',
+                category === 'equipment'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-200 hover:bg-zinc-300 dark:hover:bg-zinc-600',
+              ]"
+            >
+              Equipment
+            </button>
+            <button
+              @click.stop="selectCategory('materials')"
+              :class="[
+                'flex-1 py-2 px-4 rounded-lg font-semibold transition',
+                category === 'materials'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-200 hover:bg-zinc-300 dark:hover:bg-zinc-600',
+              ]"
+            >
+              Materials
+            </button>
           </div>
         </div>
 
