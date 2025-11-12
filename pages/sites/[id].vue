@@ -2,8 +2,10 @@
 import AssetAddSlideOver from "@/components/BAssetAddSlider.vue";
 import AssetEditSlideOver from "@/components/BAssetEditSlider.vue";
 import AssetTransferSlideOver from "@/components/BAssetTransferSlider.vue";
+import SitePhotoAddSlider from "@/components/BSitePhotoAddSlider.vue";
 import { useAsset } from "@/composables/useAsset";
 import { useSite } from "@/composables/useSite";
+import { useSitePhoto } from "@/composables/useSitePhoto";
 import { useUser } from "@/composables/useUser";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
@@ -28,7 +30,10 @@ const {
   transferAssetToMultipleSites,
 } = useAsset();
 
-const searchQuery = ref(""); // Search query for filtering assets
+const searchQuery = ref("");
+const activeTab = ref("assets");
+
+const { photos, fetchPhotos, toggleAddPhotoSlideOver, deletePhoto } = useSitePhoto(); // Search query for filtering assets
 
 // Use computed property to get assets from useAsset only
 const displayedAssets = computed(() => assets.value);
@@ -101,6 +106,7 @@ const highlightedAssets = computed(() => {
 const fetchData = async (siteId) => {
   await fetchSiteDetails(siteId);
   await fetchAssets(siteId);
+  await fetchPhotos(siteId);
 };
 
 // Fetch data on mount
@@ -133,6 +139,17 @@ const handleTransferComplete = async () => {
   await fetchData(route.params.id);
 };
 
+const handleDeletePhoto = async (photoId: number) => {
+  if (confirm("Are you sure you want to delete this photo?")) {
+    const result = await deletePhoto(photoId, route.params.id);
+    if (result.success) {
+      nuxtApp.$toastify("Photo deleted successfully!", "success");
+    } else {
+      nuxtApp.$toastify("Error deleting photo.", "error");
+    }
+  }
+};
+
 const goBack = () => {
   router.push("/");
 };
@@ -142,7 +159,6 @@ const goBack = () => {
   <BNav />
   <section class="px-3">
     <div class="max-w-screen-xl mx-auto pt-4">
-      <!-- Site Title and Add Asset Button -->
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center">
           <button
@@ -168,47 +184,92 @@ const goBack = () => {
             {{ siteName }}
           </h2>
         </div>
+        <div class="flex space-x-2">
+          <button
+            @click="activeTab = 'building-control'"
+            :class="[
+              'font-medium rounded-lg px-4 py-2',
+              activeTab === 'building-control'
+                ? 'text-white bg-green-600 hover:bg-green-700'
+                : 'text-zinc-900 dark:text-white bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600'
+            ]"
+          >
+            Building Control
+          </button>
+          <button
+            v-if="activeTab === 'assets'"
+            @click="toggleAddSlideOver"
+            class="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 ad-ast"
+          >
+            Add Asset
+          </button>
+          <button
+            v-if="activeTab === 'building-control'"
+            @click="toggleAddPhotoSlideOver"
+            class="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 ad-ast"
+          >
+            Add Photo
+          </button>
+        </div>
+      </div>
+
+      <div class="flex space-x-4 mb-4 border-b dark:border-zinc-600">
         <button
-          @click="toggleAddSlideOver"
-          class="text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg px-4 py-2 ad-ast"
+          @click="activeTab = 'assets'"
+          :class="[
+            'pb-2 px-4 font-medium transition',
+            activeTab === 'assets'
+              ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+          ]"
         >
-          Add Asset
+          Assets
+        </button>
+        <button
+          @click="activeTab = 'building-control'"
+          :class="[
+            'pb-2 px-4 font-medium transition',
+            activeTab === 'building-control'
+              ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+          ]"
+        >
+          Building Control
         </button>
       </div>
 
-      <!-- Search Form -->
-      <form class="ml-auto max-w-md sm:min-w-[300px] min-w-full mb-4">
-        <div class="relative">
-          <div
-            class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none"
-          >
-            <svg
-              class="w-4 h-4 text-zinc-500 dark:text-zinc-400"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 20 20"
+      <div v-if="activeTab === 'assets'">
+        <form class="ml-auto max-w-md sm:min-w-[300px] min-w-full mb-4">
+          <div class="relative">
+            <div
+              class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none"
             >
-              <path
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
-              />
-            </svg>
+              <svg
+                class="w-4 h-4 text-zinc-500 dark:text-zinc-400"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                />
+              </svg>
+            </div>
+            <input
+              v-model="searchQuery"
+              type="search"
+              placeholder="Search Materials & Equipment"
+              class="pl-8 bg-zinc-100 border border-zinc-300 text-zinc-900 text-sm rounded-lg focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:placeholder-zinc-400 dark:text-white"
+            />
           </div>
-          <input
-            v-model="searchQuery"
-            type="search"
-            placeholder="Search Materials & Equipment"
-            class="pl-8 bg-zinc-100 border border-zinc-300 text-zinc-900 text-sm rounded-lg focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:placeholder-zinc-400 dark:text-white"
-          />
-        </div>
-      </form>
+        </form>
 
-      <!-- Display assets grouped by category -->
-      <div class="space-y-6">
+        <div class="space-y-6">
         <!-- Equipment Section -->
         <div v-if="highlightedAssets.equipment.length > 0">
           <h3 class="text-xl font-semibold text-zinc-900 dark:text-white mb-3">
@@ -453,6 +514,65 @@ const goBack = () => {
         >
           <p class="text-zinc-500 dark:text-zinc-400">No assets found</p>
         </div>
+        </div>
+      </div>
+
+      <div v-if="activeTab === 'building-control'">
+        <div v-if="photos.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div
+            v-for="photo in photos"
+            :key="photo.id"
+            class="relative group bg-zinc-50 dark:bg-zinc-800 rounded-lg overflow-hidden border border-zinc-300 dark:border-zinc-600"
+          >
+            <div class="aspect-w-16 aspect-h-12 h-64">
+              <img
+                :src="photo.image_url"
+                :alt="photo.description || 'Site photo'"
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div
+              v-if="photo.description"
+              class="p-3 bg-zinc-50 dark:bg-zinc-800"
+            >
+              <p class="text-sm text-zinc-700 dark:text-zinc-300">
+                {{ photo.description }}
+              </p>
+            </div>
+            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                v-if="isAdmin"
+                @click="handleDeletePhoto(photo.id)"
+                class="text-white p-2 rounded-full bg-red-600 hover:bg-red-800 transition"
+                title="Delete Photo"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </button>
+            </div>
+            <div class="absolute bottom-2 right-2 text-xs text-white bg-black bg-opacity-50 px-2 py-1 rounded">
+              {{ new Date(photo.created_at).toLocaleDateString() }}
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="text-center py-8">
+          <p class="text-zinc-500 dark:text-zinc-400">No photos added yet</p>
+        </div>
       </div>
 
       <!-- Edit Slide-Over -->
@@ -463,6 +583,9 @@ const goBack = () => {
 
       <!-- Transfer Slide-Over -->
       <AssetTransferSlideOver @transfer-complete="handleTransferComplete" />
+
+      <!-- Add Photo Slide-Over -->
+      <SitePhotoAddSlider />
     </div>
   </section>
 </template>
