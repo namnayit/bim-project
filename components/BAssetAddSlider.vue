@@ -58,7 +58,7 @@ const searchAssetNames = async () => {
 
   try {
     const response = await $fetch(
-      `/api/assets/search?q=${encodeURIComponent(query)}`
+      `/api/assets/search?q=${encodeURIComponent(query)}&siteId=${encodeURIComponent(siteId)}`
     );
     suggestions.value = response.assets || [];
     showSuggestions.value = suggestions.value.length > 0;

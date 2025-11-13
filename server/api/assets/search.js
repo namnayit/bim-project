@@ -3,8 +3,9 @@ import { serverSupabaseClient } from "#supabase/server";
 export default defineEventHandler(async (event) => {
     const query = getQuery(event);
     const searchQuery = query.q?.toString().toLowerCase() || "";
+    const siteId = query.siteId?.toString() || "";
 
-    if (!searchQuery || searchQuery.length < 2) {
+    if (!searchQuery || searchQuery.length < 2 || !siteId) {
         return { assets: [] };
     }
 
@@ -14,6 +15,7 @@ export default defineEventHandler(async (event) => {
         const { data, error } = await supabase
             .from("assets")
             .select("name")
+            .eq("site_id", siteId)
             .ilike("name", `%${searchQuery}%`)
             .limit(10);
 
